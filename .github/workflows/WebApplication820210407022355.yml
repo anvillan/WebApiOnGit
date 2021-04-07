@@ -1,14 +1,11 @@
-name: Build and deploy .NET Core application to windows webapp WebApplication820210407022355 with API Management Service TodoApiapiM
+name: Build and deploy .NET Core application to Web App WebApplication820210407022355 with API Management Service TodoApiapiM-TodoApi
 on:
   push:
     branches:
     - master
 env:
   AZURE_WEBAPP_NAME: WebApplication820210407022355
-  DOTNET_CORE_VERSION: 5.0.x
-  WORKING_DIRECTORY: WebApiOnGit
-  CONFIGURATION: Release
-  AZURE_WEBAPP_PACKAGE_PATH: WebApiOnGit/publish
+  AZURE_WEBAPP_PACKAGE_PATH: WebApiOnGit\published
   AZURE_APIM_RESOURCE_PATH: TodoApiapiM/v1
   AZURE_APIM_RESOURCEGROUP: aapt0407Group
   AZURE_APIM_SERVICENAME: TodoApiapiM
@@ -16,9 +13,12 @@ env:
   AZURE_APIM_APPSERVICEURL: https://webapplication820210407022355.azurewebsites.net
   SWASHBUCLE_ASPNET_CORE_CLI_PACKAGE_VERSION: 5.6.3
   SWASHBUCKLE_DOTNET_CORE_VERSION: 3.1.x
-  API_IMPORT_SPECIFICATION_PATH: WebApiOnGit/publish/swagger.json
-  API_IMPORT_DLL: WebApiOnGit/publish/WebApiOnGit.dll
+  API_IMPORT_SPECIFICATION_PATH: WebApiOnGit\published\swagger.json
+  API_IMPORT_DLL: WebApiOnGit\bin\Release\net5.0\WebApiOnGit.dll
   API_IMPORT_VERSION: v1
+  CONFIGURATION: Release
+  DOTNET_CORE_VERSION: 5.0.x
+  WORKING_DIRECTORY: WebApiOnGit
 jobs:
   build:
     runs-on: windows-latest
@@ -32,6 +32,8 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: ${{ env.SWASHBUCKLE_DOTNET_CORE_VERSION }}
+    - name: Install Swashbuckle CLI .NET Global Tool
+      run: dotnet tool install --global Swashbuckle.AspNetCore.Cli --version ${{ env.SWASHBUCLE_ASPNET_CORE_CLI_PACKAGE_VERSION }}
     - name: Restore
       run: dotnet restore ${{ env.WORKING_DIRECTORY }}
     - name: Build
@@ -40,8 +42,6 @@ jobs:
       run: dotnet test ${{ env.WORKING_DIRECTORY }} --no-build
     - name: Publish
       run: dotnet publish ${{ env.WORKING_DIRECTORY }} --configuration ${{ env.CONFIGURATION }} --no-build --output ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-    - name: Install Swashbuckle CLI .NET Global Tool
-      run: dotnet tool install --global Swashbuckle.AspNetCore.Cli --version ${{ env.SWASHBUCLE_ASPNET_CORE_CLI_PACKAGE_VERSION }}
     - name: Generate Open API Specification Document
       run: swagger tofile --output "${{ env.API_IMPORT_SPECIFICATION_PATH }}" "${{ env.API_IMPORT_DLL }}" ${{ env.API_IMPORT_VERSION }}
     - name: Publish Artifacts
@@ -63,13 +63,12 @@ jobs:
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
         package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
-        publish-profile: ${{secrets.WebApplication820210407022355_7d54}}
+        publish-profile: ${{ secrets.WEBAPPLICATION820210407022355_FFFF }}
     - name: Azure Login
       uses: azure/login@v1
       with:
-        creds: ${{ secrets.TodoApiapiM_spn }}
+        creds: ${{ secrets.TodoApiapiM_SERVICE_PRINCIPAL }}
     - name: Import API into Azure API Management
       run: az apim api import --path "${{ env.AZURE_APIM_RESOURCE_PATH }}" --resource-group ${{ env.AZURE_APIM_RESOURCEGROUP }} --service-name ${{ env.AZURE_APIM_SERVICENAME }} --api-id ${{ env.AZURE_APIM_API_ID }} --service-url "${{ env.AZURE_APIM_APPSERVICEURL }}" --specification-path "${{ env.API_IMPORT_SPECIFICATION_PATH }}" --specification-format OpenApi --subscription-required false
     - name: logout
-      run: >
-        az logout
+      run: az logout
